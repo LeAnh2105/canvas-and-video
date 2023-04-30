@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Canvas and Video </title>
+    <style>
+        #canvas1, #canvas2, #canvas3 {
+            width: 300px;
+            height: 300px;
+            border: 1px solid black;
+        }
+        #video{
+            width: 300px;
+            height: 300px;
+            border: 1px solid black;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="canvas1"></canvas>
+    <canvas id="canvas2"></canvas>
+    <canvas id="canvas3"></canvas>
+    <video id="video" controls src="video.mp4"></video>
+
+    <script async src="https://docs.opencv.org/master/opencv.js" onload="onOpenCvReady();" type="text/javascript"></script>
+    <script>
+        var canvas1 = document.getElementById("canvas1");
+        var canvas2 = document.getElementById("canvas2");
+        var canvas3 = document.getElementById("canvas3");
+        var video = document.getElementById("video");
+
+        var context1 = canvas1.getContext("2d");
+        var context2 = canvas2.getContext("2d");
+        var context3 = canvas3.getContext("2d");
+
+        // Wait for the video to start playing
+        video.addEventListener('play', function() {
+            // Update the canvas every 33 milliseconds
+            setInterval(function() {
+                // Draw the current frame to the first canvas
+                context1.drawImage(video, 0, 0, canvas1.width, canvas1.height);
+
+                // Convert the image data to a matrix
+                var imgData = context1.getImageData(0, 0, canvas1.width, canvas1.height);
+                var src = cv.matFromImageData(imgData);
+
+                // Convert to grayscale
+                var gray = new cv.Mat();
+                cv.cvtColor(src, gray, cv.COLOR_RGBA2GRAY);
+
+                // Apply Laplacian filter
+                var laplacian = new cv.Mat();
+                var kernelSize = 3; // Change this value to adjust the filter size
+                cv.Laplacian(gray, laplacian, cv.CV_8U, kernelSize);
+
+                // Invert the colors
+                var inverted = new cv.Mat();
+                cv.bitwise_not(laplacian, inverted);
+
+                // Threshold the image
+                var thresholded = new cv.Mat();
+                var threshold = 100; // Change this value to adjust the threshold
+                cv.threshold(inverted, thresholded, threshold, 255, cv.THRESH_BINARY);
+
+                // Draw the Laplacian filter result to the second canvas
+                cv.imshow(canvas2, laplacian);
+
+                // Draw the thresholded image to the third canvas
+                cv.imshow(canvas3, thresholded);
+
+                // Free memory
+                src.delete();
+                gray.delete();
+                laplacian.delete();
+                inverted.delete();
+                thresholded.delete();
+
+            }, 33);
+        }, false);
+
+        // Function called when OpenCV is ready
+        function onOpenCvReady() {
+            console.log('OpenCV is ready');
+        }
+    </script>
+</body>
+</html>
